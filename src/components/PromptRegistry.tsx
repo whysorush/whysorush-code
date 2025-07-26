@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { FileText, Download, Upload, RefreshCw, Eye, Edit } from 'lucide-react';
 
 interface PromptFile {
@@ -28,62 +30,57 @@ const PromptRegistry = () => {
   const loadPromptFiles = async () => {
     setIsLoading(true);
     try {
-      // Simulate loading prompt files from the prompts directory
-      const promptFiles: PromptFile[] = [
-        {
-          name: 'Agent Prompt v1.0',
-          path: '/prompts/Agent Prompt v1.0.txt',
-          version: '1.0',
-          lastModified: new Date(),
-          content: 'Loading...',
-          type: 'agent'
-        },
-        {
-          name: 'Agent Prompt v1.2',
-          path: '/prompts/Agent Prompt v1.2.txt',
-          version: '1.2',
-          lastModified: new Date(),
-          content: 'Loading...',
-          type: 'agent'
-        },
-        {
-          name: 'Agent Prompt',
-          path: '/prompts/Agent Prompt.txt',
-          version: 'main',
-          lastModified: new Date(),
-          content: 'Loading...',
-          type: 'agent'
-        },
-        {
-          name: 'Agent Tools',
-          path: '/prompts/Agent Tools v1.0.json',
-          version: '1.0',
-          lastModified: new Date(),
-          content: 'Loading...',
-          type: 'tools'
-        },
-        {
-          name: 'Chat Prompt',
-          path: '/prompts/Chat Prompt.txt',
-          lastModified: new Date(),
-          content: 'Loading...',
-          type: 'chat'
-        },
-        {
-          name: 'Memory Prompt',
-          path: '/prompts/Memory Prompt.txt',
-          lastModified: new Date(),
-          content: 'Loading...',
-          type: 'memory'
-        },
-        {
-          name: 'Memory Rating Prompt',
-          path: '/prompts/Memory Rating Prompt.txt',
-          lastModified: new Date(),
-          content: 'Loading...',
-          type: 'memory'
-        }
+      // Actually load prompt files from the prompts directory
+      const promptFilePaths = [
+        { path: 'src/prompts/Agent Prompt v1.0.txt', name: 'Agent Prompt v1.0', version: '1.0', type: 'agent' as const },
+        { path: 'src/prompts/Agent Prompt v1.2.txt', name: 'Agent Prompt v1.2', version: '1.2', type: 'agent' as const },
+        { path: 'src/prompts/Agent Prompt.txt', name: 'Agent Prompt', version: 'main', type: 'agent' as const },
+        { path: 'src/prompts/Agent Tools v1.0.json', name: 'Agent Tools', version: '1.0', type: 'tools' as const },
+        { path: 'src/prompts/Chat Prompt.txt', name: 'Chat Prompt', type: 'chat' as const },
+        { path: 'src/prompts/Memory Prompt.txt', name: 'Memory Prompt', type: 'memory' as const },
+        { path: 'src/prompts/Memory Rating Prompt.txt', name: 'Memory Rating Prompt', type: 'memory' as const }
       ];
+
+      const promptFiles: PromptFile[] = await Promise.all(
+        promptFilePaths.map(async ({ path, name, version, type }) => {
+          try {
+            const response = await fetch(path);
+            let content = '';
+            let lastModified = new Date();
+            
+            if (response.ok) {
+              content = await response.text();
+              const lastModifiedHeader = response.headers.get('last-modified');
+              if (lastModifiedHeader) {
+                lastModified = new Date(lastModifiedHeader);
+              }
+            } else {
+              // Fallback content for development
+              content = `# ${name}\n\nPrompt content will be loaded here...\n\n## Status\nFile not found at ${path}`;
+            }
+
+            return {
+              name,
+              path,
+              version,
+              lastModified,
+              content,
+              type
+            };
+          } catch (error) {
+            console.warn(`Failed to load ${path}:`, error);
+            return {
+              name,
+              path,
+              version,
+              lastModified: new Date(),
+              content: `# ${name}\n\nError loading prompt file.\n\n## Error\n${error}`,
+              type
+            };
+          }
+        })
+      );
+
       setPrompts(promptFiles);
     } catch (error) {
       console.error('Failed to load prompt files:', error);
@@ -174,13 +171,39 @@ const PromptRegistry = () => {
                             v{prompt.version}
                           </Badge>
                         )}
-                        <Button variant="ghost" size="sm">
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-4xl max-h-[80vh]">
+                            <DialogHeader>
+                              <DialogTitle>{prompt.name}</DialogTitle>
+                            </DialogHeader>
+                            <ScrollArea className="h-[60vh]">
+                              <pre className="whitespace-pre-wrap text-sm bg-code-bg p-4 rounded border">
+                                {prompt.content}
+                              </pre>
+                            </ScrollArea>
+                          </DialogContent>
+                        </Dialog>
                         <Button variant="ghost" size="sm">
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            const blob = new Blob([prompt.content], { type: 'text/plain' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = prompt.name + '.txt';
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          }}
+                        >
                           <Download className="h-4 w-4" />
                         </Button>
                       </div>
@@ -210,13 +233,39 @@ const PromptRegistry = () => {
                               v{prompt.version}
                             </Badge>
                           )}
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-4xl max-h-[80vh]">
+                              <DialogHeader>
+                                <DialogTitle>{prompt.name}</DialogTitle>
+                              </DialogHeader>
+                              <ScrollArea className="h-[60vh]">
+                                <pre className="whitespace-pre-wrap text-sm bg-code-bg p-4 rounded border">
+                                  {prompt.content}
+                                </pre>
+                              </ScrollArea>
+                            </DialogContent>
+                          </Dialog>
                           <Button variant="ghost" size="sm">
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                              const blob = new Blob([prompt.content], { type: 'text/plain' });
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = prompt.name + '.txt';
+                              a.click();
+                              URL.revokeObjectURL(url);
+                            }}
+                          >
                             <Download className="h-4 w-4" />
                           </Button>
                         </div>

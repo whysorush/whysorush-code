@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Textarea } from '@/components/ui/textarea';
+import FileBrowser from './FileBrowser';
 import { 
   FileText, 
   Play, 
@@ -13,7 +15,10 @@ import {
   Search, 
   Settings,
   Code2,
-  GitBranch
+  GitBranch,
+  FolderTree,
+  X,
+  Upload
 } from 'lucide-react';
 
 interface CodeFile {
@@ -30,28 +35,22 @@ interface CodeEditorProps {
   className?: string;
 }
 
+interface FileSystemItem {
+  id: string;
+  name: string;
+  type: 'file' | 'folder';
+  path: string;
+  size?: number;
+  lastModified: Date;
+  children?: FileSystemItem[];
+  content?: string;
+}
+
 const CodeEditor: React.FC<CodeEditorProps> = ({ className }) => {
-  const [activeFiles, setActiveFiles] = useState<CodeFile[]>([
-    {
-      id: '1',
-      name: 'App.tsx',
-      path: 'src/App.tsx',
-      language: 'typescript',
-      content: `import React from 'react';\nimport { BrowserRouter, Routes, Route } from 'react-router-dom';\nimport Index from './pages/Index';\n\nconst App = () => (\n  <BrowserRouter>\n    <Routes>\n      <Route path="/" element={<Index />} />\n    </Routes>\n  </BrowserRouter>\n);\n\nexport default App;`,
-      isModified: false,
-      lastModified: new Date()
-    },
-    {
-      id: '2',
-      name: 'index.css',
-      path: 'src/index.css',
-      language: 'css',
-      content: `@tailwind base;\n@tailwind components;\n@tailwind utilities;\n\n/* Custom styles */\n.gradient-bg {\n  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n}`,
-      isModified: true,
-      lastModified: new Date()
-    }
-  ]);
-  const [activeFileId, setActiveFileId] = useState('1');
+  const [activeFiles, setActiveFiles] = useState<CodeFile[]>([]);
+  const [activeFileId, setActiveFileId] = useState<string | null>(null);
+  const [showFileBrowser, setShowFileBrowser] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const activeFile = activeFiles.find(f => f.id === activeFileId);
 
@@ -63,6 +62,77 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ className }) => {
           : file
       )
     );
+  };
+
+  const handleFileSelect = (file: FileSystemItem) => {
+    if (file.type === 'file') {
+      // Check if file is already open
+      const existingFile = activeFiles.find(f => f.path === file.path);
+      
+      if (existingFile) {
+        setActiveFileId(existingFile.id);
+      } else {
+        // Create new CodeFile from FileSystemItem
+        const language = getLanguageFromExtension(file.name);
+        const newFile: CodeFile = {
+          id: file.id,
+          name: file.name,
+          path: file.path,
+          language,
+          content: file.content || `// Loading ${file.name}...`,
+          isModified: false,
+          lastModified: file.lastModified
+        };
+        
+        setActiveFiles(prev => [...prev, newFile]);
+        setActiveFileId(file.id);
+      }
+    }
+  };
+
+  const handleFileUpload = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      const language = getLanguageFromExtension(file.name);
+      const newFile: CodeFile = {
+        id: Date.now().toString(),
+        name: file.name,
+        path: `uploaded/${file.name}`,
+        language,
+        content,
+        isModified: false,
+        lastModified: new Date(file.lastModified)
+      };
+      
+      setActiveFiles(prev => [...prev, newFile]);
+      setActiveFileId(newFile.id);
+    };
+    reader.readAsText(file);
+  };
+
+  const closeFile = (fileId: string) => {
+    setActiveFiles(prev => prev.filter(f => f.id !== fileId));
+    if (activeFileId === fileId) {
+      const remainingFiles = activeFiles.filter(f => f.id !== fileId);
+      setActiveFileId(remainingFiles.length > 0 ? remainingFiles[0].id : null);
+    }
+  };
+
+  const getLanguageFromExtension = (filename: string): string => {
+    const ext = filename.split('.').pop()?.toLowerCase();
+    switch (ext) {
+      case 'ts': return 'typescript';
+      case 'tsx': return 'typescript';
+      case 'js': return 'javascript';
+      case 'jsx': return 'javascript';
+      case 'css': return 'css';
+      case 'html': return 'html';
+      case 'json': return 'json';
+      case 'md': return 'markdown';
+      case 'txt': return 'text';
+      default: return 'text';
+    }
   };
 
   const getLanguageColor = (language: string) => {
@@ -115,6 +185,14 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ className }) => {
             </div>
           </div>
           <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowFileBrowser(!showFileBrowser)}
+            >
+              <FolderTree className="h-4 w-4 mr-2" />
+              {showFileBrowser ? 'Hide' : 'Show'} Files
+            </Button>
             <Button variant="outline" size="sm">
               <Search className="h-4 w-4 mr-2" />
               Find
@@ -127,27 +205,39 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ className }) => {
       </div>
 
       {/* File Tabs */}
-      <div className="border-b border-border">
-        <div className="flex items-center overflow-x-auto">
-          {activeFiles.map((file) => (
-            <button
-              key={file.id}
-              onClick={() => setActiveFileId(file.id)}
-              className={`flex items-center gap-2 px-4 py-2 text-sm border-r border-border whitespace-nowrap transition-colors ${
-                activeFileId === file.id
-                  ? 'bg-background text-foreground'
-                  : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-              }`}
-            >
-              <div className={`w-2 h-2 rounded-full ${getLanguageColor(file.language)}`} />
-              <span>{file.name}</span>
-              {file.isModified && (
-                <div className="w-2 h-2 bg-warning rounded-full" />
-              )}
-            </button>
-          ))}
+      {activeFiles.length > 0 && (
+        <div className="border-b border-border">
+          <div className="flex items-center overflow-x-auto">
+            {activeFiles.map((file) => (
+              <div
+                key={file.id}
+                className={`flex items-center gap-2 px-4 py-2 text-sm border-r border-border whitespace-nowrap transition-colors group ${
+                  activeFileId === file.id
+                    ? 'bg-background text-foreground'
+                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                <button
+                  onClick={() => setActiveFileId(file.id)}
+                  className="flex items-center gap-2"
+                >
+                  <div className={`w-2 h-2 rounded-full ${getLanguageColor(file.language)}`} />
+                  <span>{file.name}</span>
+                  {file.isModified && (
+                    <div className="w-2 h-2 bg-warning rounded-full" />
+                  )}
+                </button>
+                <button
+                  onClick={() => closeFile(file.id)}
+                  className="ml-2 opacity-0 group-hover:opacity-100 hover:bg-muted rounded p-1 transition-opacity"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Toolbar */}
       <div className="p-2 border-b border-border bg-muted/50">
@@ -185,37 +275,68 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ className }) => {
 
       {/* Editor Content */}
       <div className="flex-1 flex">
-        {/* Line Numbers & Code */}
-        <ScrollArea className="flex-1">
+        {/* File Browser */}
+        {showFileBrowser && (
+          <div className="w-80 border-r border-border">
+            <FileBrowser 
+              onFileSelect={handleFileSelect}
+              onFileUpload={handleFileUpload}
+            />
+          </div>
+        )}
+
+        {/* Code Editor */}
+        <div className="flex-1 flex flex-col">
           {activeFile ? (
-            <div className="p-4">
-              <pre className="bg-code-bg p-4 rounded border text-sm font-mono overflow-x-auto">
-                <code>
-                  {renderSyntaxHighlighting(activeFile.content, activeFile.language)}
-                </code>
-              </pre>
+            <div className="flex-1 p-4">
+              <Textarea
+                value={activeFile.content}
+                onChange={(e) => handleFileChange(activeFile.id, e.target.value)}
+                className="h-full font-mono text-sm resize-none bg-code-bg border-code-border"
+                placeholder="Start typing..."
+              />
             </div>
           ) : (
-            <div className="flex items-center justify-center h-full text-muted-foreground">
+            <div className="flex-1 flex items-center justify-center text-muted-foreground">
               <div className="text-center">
                 <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>No file selected</p>
-                <p className="text-sm">Select a file from the tabs above to start editing</p>
+                <p className="text-sm">Select a file from the explorer to start editing</p>
+                <Button 
+                  variant="outline" 
+                  className="mt-4"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload File
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleFileUpload(file);
+                  }}
+                  className="hidden"
+                  accept=".txt,.md,.js,.ts,.tsx,.jsx,.css,.html,.json"
+                />
               </div>
             </div>
           )}
-        </ScrollArea>
 
-        {/* Minimap (placeholder) */}
-        <div className="w-24 bg-muted/20 border-l border-border">
-          <div className="p-2">
-            <div className="text-xs text-muted-foreground mb-2">Minimap</div>
-            <div className="space-y-1">
-              {Array.from({ length: 20 }).map((_, i) => (
-                <div key={i} className="h-1 bg-muted/50 rounded" />
-              ))}
+          {/* Minimap (placeholder) */}
+          {activeFile && (
+            <div className="w-24 bg-muted/20 border-l border-border">
+              <div className="p-2">
+                <div className="text-xs text-muted-foreground mb-2">Minimap</div>
+                <div className="space-y-1">
+                  {Array.from({ length: Math.min(20, activeFile.content.split('\n').length) }).map((_, i) => (
+                    <div key={i} className="h-1 bg-muted/50 rounded" />
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
