@@ -1,0 +1,259 @@
+{
+  "version": "1.0",
+  "description": "Agent Tools Configuration - Available tools and their schemas for the AI coding agent",
+  "tools": {
+    "code_analyzer": {
+      "name": "Code Analyzer",
+      "description": "Analyzes code structure, patterns, and quality metrics",
+      "schema": {
+        "input": {
+          "file_paths": {
+            "type": "array",
+            "items": "string",
+            "description": "List of file paths to analyze"
+          },
+          "analysis_type": {
+            "type": "string",
+            "enum": ["structure", "quality", "dependencies", "patterns"],
+            "description": "Type of analysis to perform"
+          }
+        },
+        "output": {
+          "metrics": "object",
+          "issues": "array",
+          "recommendations": "array"
+        }
+      },
+      "constraints": {
+        "max_files": 100,
+        "timeout": 30,
+        "memory_limit": "512MB"
+      }
+    },
+    "diff_generator": {
+      "name": "Diff Generator",
+      "description": "Generates precise diffs showing proposed changes",
+      "schema": {
+        "input": {
+          "original_content": "string",
+          "modified_content": "string",
+          "context_lines": {
+            "type": "number",
+            "default": 3,
+            "description": "Number of context lines to include"
+          }
+        },
+        "output": {
+          "diff": "string",
+          "additions": "number",
+          "deletions": "number",
+          "file_path": "string"
+        }
+      },
+      "constraints": {
+        "max_file_size": "10MB",
+        "diff_format": "unified"
+      }
+    },
+    "linter": {
+      "name": "Code Linter",
+      "description": "Performs linting checks on code for style and potential issues",
+      "schema": {
+        "input": {
+          "file_path": "string",
+          "language": {
+            "type": "string",
+            "enum": ["javascript", "typescript", "python", "java", "go", "rust"]
+          },
+          "rules": {
+            "type": "object",
+            "description": "Custom linting rules to apply"
+          }
+        },
+        "output": {
+          "issues": {
+            "type": "array",
+            "items": {
+              "line": "number",
+              "column": "number",
+              "severity": "string",
+              "message": "string",
+              "rule": "string"
+            }
+          },
+          "score": "number"
+        }
+      },
+      "constraints": {
+        "max_file_size": "5MB",
+        "timeout": 15
+      }
+    },
+    "formatter": {
+      "name": "Code Formatter",
+      "description": "Formats code according to language conventions and project style",
+      "schema": {
+        "input": {
+          "content": "string",
+          "language": "string",
+          "style_config": {
+            "type": "object",
+            "description": "Formatting style configuration"
+          }
+        },
+        "output": {
+          "formatted_content": "string",
+          "changes_made": "boolean",
+          "formatting_issues": "array"
+        }
+      },
+      "constraints": {
+        "max_content_size": "5MB",
+        "preserve_comments": true
+      }
+    },
+    "test_runner": {
+      "name": "Test Runner",
+      "description": "Executes tests and reports results",
+      "schema": {
+        "input": {
+          "test_files": {
+            "type": "array",
+            "items": "string"
+          },
+          "test_type": {
+            "type": "string",
+            "enum": ["unit", "integration", "e2e"],
+            "description": "Type of tests to run"
+          },
+          "coverage": {
+            "type": "boolean",
+            "default": false,
+            "description": "Generate code coverage report"
+          }
+        },
+        "output": {
+          "results": {
+            "passed": "number",
+            "failed": "number",
+            "skipped": "number",
+            "total": "number"
+          },
+          "failures": "array",
+          "coverage_report": "object",
+          "execution_time": "number"
+        }
+      },
+      "constraints": {
+        "timeout": 300,
+        "max_tests": 1000
+      }
+    },
+    "security_scanner": {
+      "name": "Security Scanner",
+      "description": "Scans code for security vulnerabilities and issues",
+      "schema": {
+        "input": {
+          "file_paths": "array",
+          "scan_type": {
+            "type": "string",
+            "enum": ["static", "dependency", "secrets"],
+            "description": "Type of security scan to perform"
+          }
+        },
+        "output": {
+          "vulnerabilities": {
+            "type": "array",
+            "items": {
+              "severity": "string",
+              "type": "string",
+              "description": "string",
+              "file": "string",
+              "line": "number",
+              "recommendation": "string"
+            }
+          },
+          "risk_score": "number"
+        }
+      },
+      "constraints": {
+        "timeout": 60,
+        "max_files": 500
+      }
+    },
+    "performance_profiler": {
+      "name": "Performance Profiler",
+      "description": "Analyzes code performance and identifies bottlenecks",
+      "schema": {
+        "input": {
+          "entry_point": "string",
+          "profiling_type": {
+            "type": "string",
+            "enum": ["cpu", "memory", "network"],
+            "description": "Type of performance profiling"
+          },
+          "duration": {
+            "type": "number",
+            "default": 30,
+            "description": "Profiling duration in seconds"
+          }
+        },
+        "output": {
+          "metrics": {
+            "cpu_usage": "number",
+            "memory_usage": "number",
+            "execution_time": "number"
+          },
+          "bottlenecks": "array",
+          "recommendations": "array"
+        }
+      },
+      "constraints": {
+        "max_duration": 300,
+        "memory_limit": "1GB"
+      }
+    },
+    "dependency_analyzer": {
+      "name": "Dependency Analyzer",
+      "description": "Analyzes project dependencies and their relationships",
+      "schema": {
+        "input": {
+          "manifest_files": {
+            "type": "array",
+            "items": "string",
+            "description": "Package manifest files (package.json, requirements.txt, etc.)"
+          },
+          "analysis_depth": {
+            "type": "string",
+            "enum": ["direct", "transitive", "full"],
+            "description": "Depth of dependency analysis"
+          }
+        },
+        "output": {
+          "dependencies": "array",
+          "vulnerabilities": "array",
+          "outdated": "array",
+          "conflicts": "array",
+          "dependency_graph": "object"
+        }
+      },
+      "constraints": {
+        "max_dependencies": 10000,
+        "timeout": 120
+      }
+    }
+  },
+  "execution_constraints": {
+    "global_timeout": 600,
+    "max_concurrent_tools": 3,
+    "retry_attempts": 2,
+    "memory_limit": "2GB"
+  },
+  "tool_categories": {
+    "analysis": ["code_analyzer", "dependency_analyzer"],
+    "quality": ["linter", "formatter", "test_runner"],
+    "security": ["security_scanner"],
+    "performance": ["performance_profiler"],
+    "visualization": ["diff_generator"]
+  }
+}

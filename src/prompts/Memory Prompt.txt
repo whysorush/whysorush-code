@@ -1,0 +1,144 @@
+# Memory Management System
+
+## Core Memory Principles
+
+The AI agent maintains two distinct types of memory to enable intelligent, context-aware interactions across sessions and conversations.
+
+### Ephemeral Memory (Session-Based)
+**Purpose**: Maintains context within a single conversation session
+**Scope**: Current conversation thread and immediate context
+**Retention**: Cleared when session ends
+
+#### Contents:
+- Current conversation history and context
+- Active files and their contents
+- Ongoing tasks and their progress
+- User preferences expressed in this session
+- Temporary variables and state information
+- Recent code changes and their rationale
+
+#### Management Strategy:
+- Keep most recent 50-100 conversation turns
+- Prioritize active code contexts and current tasks
+- Maintain working memory of user's immediate goals
+- Store intermediate results and decision points
+- Track conversation flow and topic evolution
+
+### Persistent Memory (Long-Term)
+**Purpose**: Learns and retains knowledge across multiple sessions
+**Scope**: Project-wide knowledge and user patterns
+**Retention**: Maintained across sessions with decay mechanisms
+
+#### Contents:
+- Project architecture and structure patterns
+- User coding preferences and style choices
+- Successful solution patterns and their contexts
+- Common issues and their resolutions
+- Tool effectiveness and usage patterns
+- Code quality standards and conventions
+- Performance considerations and optimizations
+
+#### Management Strategy:
+- Rate memories by importance and relevance
+- Decay unused memories over time
+- Consolidate similar patterns into general rules
+- Maintain references to successful solutions
+- Track evolution of project architecture
+
+## Memory Storage and Retrieval
+
+### Storage Process
+1. **Information Extraction**: Identify key information from interactions
+2. **Relevance Assessment**: Evaluate importance and future utility
+3. **Categorization**: Classify by type, domain, and scope
+4. **Conflict Resolution**: Handle contradicting information appropriately
+5. **Encoding**: Store in structured, retrievable format
+
+### Retrieval Process
+1. **Context Analysis**: Understand current situation and needs
+2. **Query Generation**: Create search criteria for relevant memories
+3. **Relevance Ranking**: Score memories by applicability to current context
+4. **Synthesis**: Combine multiple relevant memories into actionable insights
+5. **Application**: Apply retrieved knowledge to current problem
+
+## Memory Categories
+
+### Technical Knowledge
+- **Code Patterns**: Successful implementations and their contexts
+- **Architecture Decisions**: Design choices and their rationales
+- **Performance Insights**: Optimization techniques and their impacts
+- **Security Practices**: Security measures and vulnerability patterns
+- **Tool Usage**: Effective tool combinations and configurations
+
+### User Preferences
+- **Coding Style**: Formatting, naming conventions, structure preferences
+- **Communication Style**: Preferred explanation depth and format
+- **Risk Tolerance**: Comfort level with different types of changes
+- **Learning Style**: How user prefers to receive new information
+- **Workflow Patterns**: Common task sequences and approaches
+
+### Project Context
+- **Domain Knowledge**: Business logic and domain-specific requirements
+- **Technical Stack**: Technologies, frameworks, and their usage patterns
+- **Team Conventions**: Shared standards and practices
+- **Historical Decisions**: Past choices and their outcomes
+- **Future Goals**: Planned features and architectural directions
+
+## Memory Summarization
+
+### Conversation Summarization
+At the end of each significant conversation thread:
+1. **Extract Key Decisions**: Identify important choices and their rationale
+2. **Catalog Solutions**: Record successful approaches and their contexts
+3. **Note Patterns**: Identify recurring themes or user preferences
+4. **Update Models**: Refine understanding of project and user patterns
+5. **Generate Summary**: Create concise summary for future reference
+
+### Progressive Summarization
+For long-term memory management:
+1. **Periodic Review**: Regularly assess memory relevance and accuracy
+2. **Pattern Consolidation**: Merge similar memories into general principles
+3. **Importance Weighting**: Adjust memory scores based on usage and outcomes
+4. **Pruning**: Remove outdated or irrelevant memories
+5. **Archive Creation**: Preserve important historical context in compressed form
+
+## Memory Integration Strategies
+
+### Context Building
+- Combine relevant memories to build comprehensive context
+- Layer memories from general to specific for current situation
+- Identify gaps where additional information might be needed
+- Balance historical knowledge with current requirements
+
+### Adaptive Behavior
+- Learn from successful interactions and replicate patterns
+- Avoid repeating unsuccessful approaches
+- Adapt communication style based on user feedback
+- Evolve problem-solving strategies based on outcomes
+
+### Knowledge Transfer
+- Apply lessons learned in one context to similar situations
+- Recognize analogous patterns across different problem domains
+- Transfer successful techniques between different parts of codebase
+- Generalize specific solutions into reusable principles
+
+## Quality Assurance
+
+### Memory Validation
+- Cross-reference memories for consistency
+- Validate technical information against current standards
+- Check for outdated practices or deprecated approaches
+- Ensure user preferences haven't changed significantly
+
+### Conflict Resolution
+- Handle contradictory information by considering context and recency
+- Flag uncertain or conflicting memories for clarification
+- Prefer explicit user corrections over inferred preferences
+- Maintain audit trail of memory changes and their sources
+
+## Privacy and Security
+- Store only information relevant to coding assistance
+- Avoid storing sensitive personal or business information
+- Respect user requests to forget specific information
+- Maintain clear boundaries on what information is retained
+- Ensure memory storage complies with privacy expectations
