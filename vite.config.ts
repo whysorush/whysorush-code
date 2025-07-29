@@ -5,9 +5,21 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  base: mode === 'production' ? '/cursor/' : '/',
   server: {
     host: "::",
     port: 8080,
+    proxy: {
+      '/api/deepseek': {
+        target: 'https://api.deepseek.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/deepseek/, '/v1'),
+        secure: true,
+        headers: {
+          'Origin': 'https://api.deepseek.com'
+        }
+      }
+    }
   },
   plugins: [
     react(),

@@ -1,73 +1,170 @@
-# Welcome to your Lovable project
+# Whysorush Flow - AI-Powered Code Editor
 
-## Project info
+An intelligent code editor that provides context-aware AI assistance, similar to Cursor AI. Built with React, TypeScript, and modern web technologies.
 
-**URL**: https://lovable.dev/projects/fd6bc159-a029-41f1-9f94-d796d95b8efc
+## 🚀 Features
 
-## How can I edit this code?
+### **AI-Powered Code Assistance**
+- **Context-Aware Responses**: AI understands your project structure and provides relevant suggestions
+- **Natural Language Input**: Type requests like "Refactor the payment module" or "Add error handling to authentication"
+- **Smart Prompt Selection**: Automatically selects the best AI prompt based on your input
+- **Conversation History**: All interactions are saved for iterative development
 
-There are several ways of editing your application.
+### **Project Management**
+- **File Upload System**: Upload individual files or entire directories
+- **File Browser**: Navigate your project structure with ease
+- **Code Editor**: Direct file editing with syntax highlighting
+- **Diff Viewer**: Side-by-side comparisons of original vs. modified code
 
-**Use Lovable**
+### **Advanced AI Features**
+- **Prompt Management**: Centralized system for managing AI prompts
+- **Memory System**: AI learns from your interactions and maintains context
+- **Tool Orchestration**: Intelligent tool selection and execution
+- **Multi-Mode Support**: Switch between Chat, Agent, and Memory modes
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/fd6bc159-a029-41f1-9f94-d796d95b8efc) and start prompting.
+## 🛠️ Technology Stack
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Frontend**: React 18, TypeScript, Vite
+- **UI Components**: shadcn/ui, Radix UI, Tailwind CSS
+- **State Management**: React Query, React Hook Form
+- **AI Integration**: Custom prompt management system
+- **Development**: ESLint, Prettier, TypeScript
 
-**Use your preferred IDE**
+## 📦 Installation
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Prerequisites
+- Node.js 18+ and npm/yarn
+- Git
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Setup Instructions
 
-Follow these steps:
+```bash
+# Clone the repository
+git clone https://github.com/whysorush/cursor.git
+cd cursor
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# Install dependencies
+npm install
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The application will be available at `http://localhost:5173`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 🚀 Deployment
 
-**Use GitHub Codespaces**
+### GitHub Pages (Recommended)
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+This project is configured for automatic deployment to GitHub Pages. The site will be available at: **https://whysorush.github.io/cursor**
 
-## What technologies are used for this project?
+#### Automatic Deployment
+- Push changes to the `main` branch
+- GitHub Actions will automatically build and deploy the site
+- Deployment typically takes 2-3 minutes
 
-This project is built with:
+#### Manual Deployment
+```bash
+# Build the project
+npm run build
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+# Deploy to GitHub Pages (requires gh-pages package)
+npm run deploy
+```
 
-## How can I deploy this project?
+### Other Deployment Options
 
-Simply open [Lovable](https://lovable.dev/projects/fd6bc159-a029-41f1-9f94-d796d95b8efc) and click on Share -> Publish.
+#### Vercel
+```bash
+# Install Vercel CLI
+npm i -g vercel
 
-## Can I connect a custom domain to my Lovable project?
+# Deploy
+vercel
+```
 
-Yes, you can!
+#### Netlify
+```bash
+# Build the project
+npm run build
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+# Deploy the dist folder to Netlify
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## 🎯 Quick Start
+
+### 1. **Upload Your Project**
+- Click the **"Upload Project"** button in the top-right corner
+- Choose to upload individual files or entire directories
+- Supported file types: `.js`, `.ts`, `.tsx`, `.jsx`, `.json`, `.md`, `.txt`, `.css`, `.html`, `.py`, `.java`, `.cpp`, `.c`, `.go`, `.rs`, `.php`, `.rb`, `.swift`, `.kt`
+
+### 2. **Use the Composer**
+- Switch to the **"Composer"** tab in the left sidebar
+- Add relevant files to the AI context using the **"+"** button
+- Type your requests in natural language
+- Review and apply suggested changes
+
+### 3. **Explore Other Features**
+- **Code Editor**: Direct file editing and navigation
+- **Chat Interface**: General AI assistance
+- **Memory Panel**: Track AI learning and context
+- **Prompt Registry**: Manage AI prompts
+
+## 📚 Documentation
+
+- **[Usage Guide](USAGE_GUIDE.md)**: Comprehensive guide for using Whysorush Flow
+- **[Prompt Integration Guide](PROMPT_INTEGRATION_GUIDE.md)**: Advanced prompt management features
+- **[DeepSeek Setup](DEEPSEEK_SETUP.md)**: Configuration for DeepSeek AI integration
+
+## 🔧 Development
+
+### Available Scripts
+
+```bash
+# Development
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run build:dev    # Build for development
+npm run preview      # Preview production build
+
+# Code Quality
+npm run lint         # Run ESLint
+```
+
+### Project Structure
+
+```
+src/
+├── components/          # React components
+│   ├── Composer/       # AI composer interface
+│   ├── FileBrowser/    # File navigation
+│   └── ui/            # shadcn/ui components
+├── hooks/              # Custom React hooks
+├── lib/                # Utility functions
+├── pages/              # Application pages
+├── prompts/            # AI prompt files
+├── types/              # TypeScript type definitions
+└── data/               # Sample data and configurations
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Built with [shadcn/ui](https://ui.shadcn.com/) components
+- Powered by modern React and TypeScript
+- Inspired by Cursor AI and similar intelligent code editors
+
+---
+
+**Whysorush Flow** - Making AI-powered coding accessible and intuitive.

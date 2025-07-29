@@ -14,6 +14,7 @@ interface DeepSeekConfig {
   model: string;
   maxTokens: number;
   temperature: number;
+  useProxy?: boolean;
 }
 
 interface DeepSeekContextType {
@@ -26,11 +27,19 @@ interface DeepSeekContextType {
 
 const defaultConfig: DeepSeekConfig = {
   apiKey: '',
-  endpoint: 'https://api.deepseek.com/v1/chat/completions',
+  endpoint: process.env.NODE_ENV === 'development' 
+    ? '/api/deepseek/chat/completions' 
+    : 'https://api.deepseek.com/v1/chat/completions',
   model: 'deepseek-coder',
-  maxTokens: 4096,
+  maxTokens: 100000,
   temperature: 0.1
 };
+
+// Note: For production, you'll need to handle CORS properly
+// Options:
+// 1. Use a backend proxy
+// 2. Configure CORS on your server
+// 3. Use a different API endpoint that supports CORS
 
 const DeepSeekContext = createContext<DeepSeekContextType | null>(null);
 
@@ -73,7 +82,18 @@ export const DeepSeekProvider: React.FC<DeepSeekProviderProps> = ({ children }) 
 
     setIsTestingConnection(true);
     try {
-      const response = await fetch(config.endpoint, {
+      // Handle endpoint URL
+      let endpoint = config.endpoint;
+      
+      // If it's a relative URL (starts with /), use it as is (for proxy)
+      // If it's an absolute URL, use it directly
+      if (!endpoint.startsWith('http') && !endpoint.startsWith('/')) {
+        endpoint = `https://${endpoint}`;
+      }
+
+      console.log('Testing connection to:', endpoint);
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -94,9 +114,12 @@ export const DeepSeekProvider: React.FC<DeepSeekProviderProps> = ({ children }) 
         });
         return true;
       } else {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error('Connection test failed:', errorText);
+        throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
       }
     } catch (error) {
+      console.error('Connection test error:', error);
       toast({
         title: "Connection Failed",
         description: error instanceof Error ? error.message : "Unknown error occurred",
@@ -113,6 +136,17 @@ export const DeepSeekProvider: React.FC<DeepSeekProviderProps> = ({ children }) 
       throw new Error('DeepSeek API key not configured');
     }
 
+    // Handle endpoint URL
+    let endpoint = config.endpoint;
+    
+    // If it's a relative URL (starts with /), use it as is (for proxy)
+    // If it's an absolute URL, use it directly
+    if (!endpoint.startsWith('http') && !endpoint.startsWith('/')) {
+      endpoint = `https://${endpoint}`;
+    }
+
+    console.log('Making request to:', endpoint);
+
     const messages = [
       {
         role: 'system',
@@ -124,27 +158,46 @@ export const DeepSeekProvider: React.FC<DeepSeekProviderProps> = ({ children }) 
       }
     ];
 
-    const response = await fetch(config.endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.apiKey}`
-      },
-      body: JSON.stringify({
-        model: config.model,
-        messages,
-        max_tokens: config.maxTokens,
-        temperature: config.temperature,
-        stream: false
-      })
-    });
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${config.apiKey}`
+        },
+        body: JSON.stringify({
+          model: config.model,
+          messages,
+          max_tokens: config.maxTokens,
+          temperature: config.temperature,
+          stream: false
+        })
+      });
 
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error Response:', errorText);
+        
+        // Handle CORS errors specifically
+        if (response.status === 0 || response.status === 403) {
+          throw new Error(`CORS Error: Unable to access DeepSeek API directly from browser. Please use a backend proxy or configure CORS properly. Error: ${errorText}`);
+        }
+        
+        throw new Error(`API request failed: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      return data.choices[0]?.message?.content || 'No response generated';
+    } catch (error) {
+      console.error('DeepSeek API request failed:', error);
+      
+      // If it's a CORS error, provide helpful guidance
+      if (error instanceof Error && error.message.includes('CORS')) {
+        throw new Error(`CORS Error: ${error.message}\n\nTo fix this:\n1. Use a backend proxy server\n2. Configure CORS on your server\n3. Use a different API endpoint that supports CORS\n4. For development, you can use browser extensions to disable CORS`);
+      }
+      
+      throw error;
     }
-
-    const data = await response.json();
-    return data.choices[0]?.message?.content || 'No response generated';
   }, [config]);
 
   const isConfigured = Boolean(config.apiKey);
@@ -156,6 +209,18 @@ export const DeepSeekProvider: React.FC<DeepSeekProviderProps> = ({ children }) 
     testConnection,
     makeRequest
   };
+
+  // Expose DeepSeek API globally for use by other components
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).deepSeekAPI = {
+        isConfigured,
+        makeRequest,
+        testConnection,
+        config
+      };
+    }
+  }, [isConfigured, makeRequest, testConnection, config]);
 
   return (
     <DeepSeekContext.Provider value={value}>
@@ -249,6 +314,12 @@ export const DeepSeekConfigDialog: React.FC<DeepSeekConfigDialogProps> = ({ trig
                 onChange={(e) => setLocalConfig({ ...localConfig, endpoint: e.target.value })}
                 className="font-mono"
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                {process.env.NODE_ENV === 'development' 
+                  ? 'Development: Using local proxy at /api/deepseek/chat/completions'
+                  : 'Production: Use full URL like https://api.deepseek.com/v1/chat/completions'
+                }
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -261,16 +332,19 @@ export const DeepSeekConfigDialog: React.FC<DeepSeekConfigDialogProps> = ({ trig
                   onChange={(e) => setLocalConfig({ ...localConfig, model: e.target.value })}
                 />
               </div>
-              <div>
-                <Label htmlFor="maxTokens">Max Tokens</Label>
-                <Input
-                  id="maxTokens"
-                  type="number"
-                  placeholder="4096"
-                  value={localConfig.maxTokens}
-                  onChange={(e) => setLocalConfig({ ...localConfig, maxTokens: parseInt(e.target.value) || 4096 })}
-                />
-              </div>
+                          <div>
+              <Label htmlFor="maxTokens">Max Tokens</Label>
+              <Input
+                id="maxTokens"
+                type="number"
+                placeholder="4096"
+                value={localConfig.maxTokens}
+                onChange={(e) => setLocalConfig({ ...localConfig, maxTokens: parseInt(e.target.value) || 100000 })}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Lower values (1000-4000) for shorter responses, higher values (8000-32000) for longer responses
+              </p>
+            </div>
             </div>
 
             <div>

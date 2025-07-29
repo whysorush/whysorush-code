@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 import { 
   Folder, 
   File, 
@@ -15,151 +16,129 @@ import {
   FileText,
   FileCode,
   Image,
-  Settings
+  Settings,
+  Trash2,
+  Edit3,
+  MoreHorizontal
 } from 'lucide-react';
-
-interface FileSystemItem {
-  id: string;
-  name: string;
-  type: 'file' | 'folder';
-  path: string;
-  size?: number;
-  lastModified: Date;
-  children?: FileSystemItem[];
-  content?: string;
-}
-
-interface FileBrowserProps {
-  className?: string;
-  onFileSelect?: (file: FileSystemItem) => void;
-  onFileUpload?: (file: File) => void;
-}
+import { FileSystemItem, FileBrowserProps, FileBrowserConfig } from '@/types/fileSystem';
+import { useFileSystem } from '@/hooks/useFileSystem';
 
 const FileBrowser: React.FC<FileBrowserProps> = ({ 
-  className, 
-  onFileSelect, 
-  onFileUpload 
+  className,
+  config = {},
+  initialFiles = [],
+  onFileSelect,
+  onFileUpload,
+  onFileCreate,
+  onFileDelete,
+  onFileRename,
+  onFolderToggle,
+  title = "File Explorer",
+  height,
+  width
 }) => {
-  const [files, setFiles] = useState<FileSystemItem[]>([]);
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['src', 'src/components', 'src/prompts']));
+  const {
+    showSearch = true,
+    showUpload = true,
+    showNewFile = true,
+    showSettings = true,
+    showFileSize = true,
+    allowMultipleSelection = false,
+    defaultExpandedFolders = [],
+    fileTypes = {}
+  }: FileBrowserConfig = config;
+
+  const {
+    files,
+    loading,
+    error,
+    expandedFolders,
+    selectedFiles,
+    toggleFolder,
+    selectFile,
+    clearSelection,
+    createFile,
+    createFolder,
+    deleteFile,
+    renameFile
+  } = useFileSystem({
+    initialFiles,
+    autoLoad: false
+  });
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [newItemName, setNewItemName] = useState('');
+  const [newItemType, setNewItemType] = useState<'file' | 'folder'>('file');
+  const [editingFile, setEditingFile] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
 
-  useEffect(() => {
-    loadFileSystem();
-  }, []);
-
-  const loadFileSystem = async () => {
-    // Simulate file system structure
-    const fileStructure: FileSystemItem[] = [
-      {
-        id: 'src',
-        name: 'src',
-        type: 'folder',
-        path: 'src',
-        lastModified: new Date(),
-        children: [
-          {
-            id: 'src/components',
-            name: 'components',
-            type: 'folder',
-            path: 'src/components',
-            lastModified: new Date(),
-            children: [
-              {
-                id: 'src/components/App.tsx',
-                name: 'App.tsx',
-                type: 'file',
-                path: 'src/components/App.tsx',
-                size: 1024,
-                lastModified: new Date(),
-                content: 'import React from "react";\n\nconst App = () => {\n  return <div>Hello World</div>;\n};\n\nexport default App;'
-              },
-              {
-                id: 'src/components/ChatInterface.tsx',
-                name: 'ChatInterface.tsx',
-                type: 'file',
-                path: 'src/components/ChatInterface.tsx',
-                size: 2048,
-                lastModified: new Date()
-              }
-            ]
-          },
-          {
-            id: 'src/prompts',
-            name: 'prompts',
-            type: 'folder',
-            path: 'src/prompts',
-            lastModified: new Date(),
-            children: [
-              {
-                id: 'src/prompts/agent-v1.0.txt',
-                name: 'Agent Prompt v1.0.txt',
-                type: 'file',
-                path: 'src/prompts/Agent Prompt v1.0.txt',
-                size: 4096,
-                lastModified: new Date()
-              },
-              {
-                id: 'src/prompts/agent-v1.2.txt',
-                name: 'Agent Prompt v1.2.txt',
-                type: 'file',
-                path: 'src/prompts/Agent Prompt v1.2.txt',
-                size: 5120,
-                lastModified: new Date()
-              },
-              {
-                id: 'src/prompts/tools.json',
-                name: 'Agent Tools v1.0.json',
-                type: 'file',
-                path: 'src/prompts/Agent Tools v1.0.json',
-                size: 3072,
-                lastModified: new Date()
-              }
-            ]
-          }
-        ]
-      },
-      {
-        id: 'public',
-        name: 'public',
-        type: 'folder',
-        path: 'public',
-        lastModified: new Date(),
-        children: [
-          {
-            id: 'public/index.html',
-            name: 'index.html',
-            type: 'file',
-            path: 'public/index.html',
-            size: 512,
-            lastModified: new Date()
-          }
-        ]
-      }
-    ];
-
-    setFiles(fileStructure);
-  };
-
-  const toggleFolder = (folderId: string) => {
-    setExpandedFolders(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(folderId)) {
-        newSet.delete(folderId);
-      } else {
-        newSet.add(folderId);
-      }
-      return newSet;
-    });
-  };
+  // Set default expanded folders on mount
+  React.useEffect(() => {
+    if (defaultExpandedFolders.length > 0) {
+      defaultExpandedFolders.forEach(folderId => {
+        if (!expandedFolders.has(folderId)) {
+          toggleFolder(folderId);
+        }
+      });
+    }
+  }, [defaultExpandedFolders, expandedFolders, toggleFolder]);
 
   const handleFileClick = (file: FileSystemItem) => {
     if (file.type === 'folder') {
       toggleFolder(file.id);
+      onFolderToggle?.(file.id, !expandedFolders.has(file.id));
     } else {
-      setSelectedFile(file.id);
+      selectFile(file.id, allowMultipleSelection);
       onFileSelect?.(file);
+    }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && onFileUpload) {
+      onFileUpload(file);
+    }
+  };
+
+  const handleCreateItem = async () => {
+    if (!newItemName.trim()) return;
+    
+    try {
+      if (newItemType === 'file') {
+        await createFile(newItemName, '', '');
+        onFileCreate?.(newItemName, 'file');
+      } else {
+        await createFolder(newItemName, '');
+        onFileCreate?.(newItemName, 'folder');
+      }
+      setIsCreating(false);
+      setNewItemName('');
+    } catch (error) {
+      console.error('Failed to create item:', error);
+    }
+  };
+
+  const handleDeleteFile = async (fileId: string) => {
+    try {
+      await deleteFile(fileId);
+      onFileDelete?.(fileId);
+    } catch (error) {
+      console.error('Failed to delete file:', error);
+    }
+  };
+
+  const handleRenameFile = async (fileId: string) => {
+    if (!editName.trim()) return;
+    
+    try {
+      await renameFile(fileId, editName);
+      onFileRename?.(fileId, editName);
+      setEditingFile(null);
+      setEditName('');
+    } catch (error) {
+      console.error('Failed to rename file:', error);
     }
   };
 
@@ -169,6 +148,15 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
     }
     
     const extension = file.name.split('.').pop()?.toLowerCase();
+    
+    // Check custom file types first
+    for (const [typeName, typeConfig] of Object.entries(fileTypes)) {
+      if (typeConfig.extensions.includes(extension || '')) {
+        return FileCode; // You could map to specific icons here
+      }
+    }
+    
+    // Default file type mapping
     switch (extension) {
       case 'tsx':
       case 'ts':
@@ -182,14 +170,20 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
       case 'jpg':
       case 'jpeg':
       case 'gif':
+      case 'svg':
         return Image;
+      case 'json':
+      case 'xml':
+      case 'yaml':
+      case 'yml':
+        return FileText;
       default:
         return File;
     }
   };
 
   const formatFileSize = (bytes?: number) => {
-    if (!bytes) return '';
+    if (!bytes || !showFileSize) return '';
     const units = ['B', 'KB', 'MB', 'GB'];
     let size = bytes;
     let unitIndex = 0;
@@ -210,23 +204,78 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
       )
       .map(item => (
         <div key={item.id}>
-          <button
-            onClick={() => handleFileClick(item)}
-            className={`w-full flex items-center gap-2 px-2 py-1 text-sm hover:bg-muted/50 rounded transition-colors ${
-              selectedFile === item.id ? 'bg-primary/10 text-primary' : 'text-foreground'
+          <div
+            className={`group flex items-center gap-2 px-2 py-1 text-sm hover:bg-muted/50 rounded transition-colors ${
+              selectedFiles.has(item.id) ? 'bg-primary/10 text-primary' : 'text-foreground'
             }`}
             style={{ paddingLeft: `${level * 16 + 8}px` }}
           >
-            {React.createElement(getFileIcon(item), { 
-              className: "h-4 w-4 flex-shrink-0" 
-            })}
-            <span className="flex-1 text-left truncate">{item.name}</span>
+            <button
+              onClick={() => handleFileClick(item)}
+              className="flex items-center gap-2 flex-1 text-left"
+            >
+              {React.createElement(getFileIcon(item), { 
+                className: "h-4 w-4 flex-shrink-0" 
+              })}
+              <span className="flex-1 truncate">
+                {editingFile === item.id ? (
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleRenameFile(item.id);
+                      } else if (e.key === 'Escape') {
+                        setEditingFile(null);
+                        setEditName('');
+                      }
+                    }}
+                    onBlur={() => {
+                      setEditingFile(null);
+                      setEditName('');
+                    }}
+                    className="bg-background border border-border rounded px-1 text-xs"
+                    autoFocus
+                  />
+                ) : (
+                  item.name
+                )}
+              </span>
+            </button>
+            
             {item.type === 'file' && item.size && (
               <span className="text-xs text-muted-foreground">
                 {formatFileSize(item.size)}
               </span>
             )}
-          </button>
+            
+            {/* Action buttons */}
+            <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
+              {item.type === 'file' && (
+                <>
+                  <button
+                    onClick={() => {
+                      setEditingFile(item.id);
+                      setEditName(item.name);
+                    }}
+                    className="p-1 hover:bg-muted rounded"
+                    title="Rename"
+                  >
+                    <Edit3 className="h-3 w-3" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteFile(item.id)}
+                    className="p-1 hover:bg-muted rounded text-destructive"
+                    title="Delete"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+          
           {item.type === 'folder' && 
            expandedFolders.has(item.id) && 
            item.children && (
@@ -238,72 +287,175 @@ const FileBrowser: React.FC<FileBrowserProps> = ({
       ));
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && onFileUpload) {
-      onFileUpload(file);
-    }
+  const containerStyle = {
+    height: height || '100%',
+    width: width || 'auto'
   };
 
   return (
-    <div className={`h-full flex flex-col bg-gradient-card border border-border rounded-lg ${className}`}>
+    <div 
+      className={`flex flex-col bg-gradient-card border border-border rounded-lg ${className}`}
+      style={containerStyle}
+    >
+      {/* Header */}
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Folder className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold text-foreground">File Explorer</h3>
+            <h3 className="font-semibold text-foreground">{title}</h3>
+            {loading && <Badge variant="secondary" className="text-xs">Loading...</Badge>}
+            {error && <Badge variant="destructive" className="text-xs">Error</Badge>}
           </div>
           <div className="flex gap-1">
-            <Button variant="ghost" size="sm">
-              <Plus className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="sm">
-              <Settings className="h-4 w-4" />
-            </Button>
+            {showNewFile && (
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setIsCreating(true)}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            )}
+            {showSettings && (
+              <Button variant="ghost" size="sm">
+                <Settings className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
         
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search files..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
+        {/* Search */}
+        {showSearch && (
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search files..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+        )}
+
+        {/* Create new item */}
+        {isCreating && (
+          <div className="mt-3 p-2 border border-border rounded bg-muted/20">
+            <div className="flex gap-2 mb-2">
+              <Button
+                variant={newItemType === 'file' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setNewItemType('file')}
+              >
+                File
+              </Button>
+              <Button
+                variant={newItemType === 'folder' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setNewItemType('folder')}
+              >
+                Folder
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              <Input
+                placeholder={`New ${newItemType} name...`}
+                value={newItemName}
+                onChange={(e) => setNewItemName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleCreateItem();
+                  } else if (e.key === 'Escape') {
+                    setIsCreating(false);
+                    setNewItemName('');
+                  }
+                }}
+                className="flex-1"
+                autoFocus
+              />
+              <Button size="sm" onClick={handleCreateItem}>
+                Create
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  setIsCreating(false);
+                  setNewItemName('');
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
+      {/* File Tree */}
       <div className="flex-1 p-2">
         <ScrollArea className="h-full">
-          {renderFileTree(files)}
+          {files.length > 0 ? (
+            renderFileTree(files)
+          ) : (
+            <div className="text-center text-muted-foreground py-8">
+              <Folder className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>No files found</p>
+              {showNewFile && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-2"
+                  onClick={() => setIsCreating(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create first file
+                </Button>
+              )}
+            </div>
+          )}
         </ScrollArea>
       </div>
 
-      <Separator />
-      
-      <div className="p-3 border-t border-border">
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="flex-1">
-            <Upload className="h-4 w-4 mr-2" />
-            Upload
-          </Button>
-          <input
-            type="file"
-            onChange={handleFileUpload}
-            className="hidden"
-            id="file-upload"
-          />
-          <label htmlFor="file-upload">
-            <Button variant="outline" size="sm" asChild>
-              <span className="cursor-pointer">
-                <Plus className="h-4 w-4 mr-2" />
-                New
-              </span>
-            </Button>
-          </label>
-        </div>
-      </div>
+      {/* Footer */}
+      {(showUpload || showNewFile) && (
+        <>
+          <Separator />
+          <div className="p-3 border-t border-border">
+            <div className="flex gap-2">
+              {showUpload && (
+                <>
+                  <Button variant="outline" size="sm" className="flex-1">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload
+                  </Button>
+                  <input
+                    type="file"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    id="file-upload"
+                  />
+                  <label htmlFor="file-upload">
+                    <Button variant="outline" size="sm" asChild>
+                      <span className="cursor-pointer">
+                        <Download className="h-4 w-4" />
+                      </span>
+                    </Button>
+                  </label>
+                </>
+              )}
+              {showNewFile && !isCreating && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setIsCreating(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  New
+                </Button>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

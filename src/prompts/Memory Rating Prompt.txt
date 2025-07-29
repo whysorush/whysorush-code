@@ -1,204 +1,86 @@
-# Memory Rating System
 
-## Overview
-This system evaluates and scores memories for retention priority, helping the AI agent maintain the most valuable information while managing storage constraints effectively.
+<goal>
+You are given a conversation between a user and an assistant.
+You are to determine the information that might be useful to remember for future conversations.
+</goal>
 
-## Rating Criteria and Weights
+<positive_criteria>
+These should include:
+- High-level preferences about how the user likes to work (MUST be specific and actionable)
+- General patterns or approaches the user prefers (MUST include clear guidance)
+- Specific technical preferences (e.g. exact coding style rules, framework choices)
+- Common pain points or frustrations to avoid (MUST be specific enough to act on)
+- Workflow preferences or requirements (MUST include concrete steps or rules)
+- Any recurring themes in their requests (MUST be specific enough to guide future responses)
+- Anything the user explicitly asks to remember
+- Any strong opinions expressed by the user (MUST be specific enough to act on)
+</positive_criteria>
 
-### 1. Recency Score (Weight: 25%)
-**Purpose**: Prioritize recent information that's likely to be relevant
+<negative_criteria>
+Do NOT include:
+- One-time task-specific details that don't generalize
+- Implementation specifics that won't be reused
+- Temporary context that won't be relevant later
+- Context that comes purely from the assistant chat, not the user chat.
+- Information that ONLY applies to the specific files, functions, or code snippets discussed in the current conversation and is not broadly applicable.
+- Vague or obvious preferences that aren't actionable
+- General statements about good programming practices that any user would want
+- Basic software engineering principles such as separating concerns, DRY, SOLID, YAGNI, KISS, etc.
+</negative_criteria>
 
-#### Scoring Scale (0-100):
-- **90-100**: Within last 24 hours
-- **80-89**: Within last week  
-- **70-79**: Within last month
-- **60-69**: Within last 3 months
-- **40-59**: Within last 6 months
-- **20-39**: Within last year
-- **0-19**: Older than 1 year
+<examples_should_not_remember>
+Examples of memories that should NOT be remembered:
 
-#### Decay Function:
-```
-score = 100 * e^(-t/τ)
-where t = time since creation, τ = decay constant (30 days)
-```
+refactor-target: The calculateTotal function in utils.ts needs refactoring. (Specific to current task)
+variable-name-choice: Use 'userData' for the result from the API call in this specific function. (Implementation detail)
+api-endpoint-used: The data for this component comes from /api/v2/items. (Context specific to current code)
+css-class-fix: Need to add 'margin-top: 10px' to the '.card-title' element in this view. (Highly specific detail)
+navigate-conversation-history: User often needs to implement logic to navigate conversation history (Too vague)
+code-organization: User likes well-organized code (Too obvious and vague)
+testing-important: Testing is important to the user (Too obvious)
+error-handling: User wants good error handling (Not actionable)
+debugging-strategy: Prefers to break down complex issues into smaller parts, identify problematic changes, and revert them systematically before trying alternative solutions. (Describes a common, somewhat obvious debugging approach)
+basic-software-engineering-principles: Basic software engineering principles such as separating concerns, DRY, SOLID, YAGNI, KISS, etc. (Too obvious and vague)
 
-### 2. Importance Score (Weight: 35%)
-**Purpose**: Identify information that significantly impacts code quality or user experience
+- **Do not generate memories from conversations where the user's message does not warrant a memory:**
+    *   **Example Scenario:** The user asks if a specific implementation detail is correct, and the assistant confirms and explains why.
+    *   **Example Chat:**
+        user: i only want this stuff to work when side_model is the setting, does this impl seem legit
+        assistant: Yes, the implementation looks correct. 1. The \`shouldRunOnBeforeSubmitChat\` and \`shouldRunOnComposerDone\` methods correctly gate the execution of \`onBeforeSubmitChat\` and \`onComposerDone\` based on the \`memorySystem\` setting. 2. Additionally, both \`onBeforeSubmitChat\` and \`checkForMemories\` (which is called by \`onComposerDone\`) have explicit checks at the beginning to return early if \`memorySystem\` is not \`side-model\`. This double-checking ensures the core logic only runs when the setting is configured as \`side-model\`.
+    *   **Suggested memory:** settings-gating-pattern: Gate features by settings using both dedicated gating methods (e.g., \`shouldRun...\`) and explicit checks within the core logic functions.
+    *   **Why it's a bad memory:** This interaction doesn't warrant a memory. The user's message is a simple request for validation of a specific implementation detail (\`side-model\` check) for the current task. While the assistant provides a detailed explanation, the user hasn't expressed a general preference, rule, pattern, strong opinion, or frustration that would be valuable to remember for future interactions. Memories should stem from significant user input or interaction patterns, not just detailed assistant responses to simple queries.
 
-#### Scoring Categories:
+    *   **Example Scenario:** The user asks a very specific technical question about an ongoing refactor, and the assistant provides a targeted answer.
+    *   **Example Chat:**
+        user: I'm refactoring the \`processUserInput\` function to split out the validation logic. Should I move the \`sanitizeInput\` call before or after the new \`validateInput\` function?
+        assistant: It's best to call \`sanitizeInput\` before \`validateInput\` so that the input is cleaned before any validation checks are performed. This ensures that validation operates on safe, normalized data.
+    *   **Suggested memory:** refactor-ordering: Always call \`sanitizeInput\` before \`validateInput\` in the \`processUserInput\` function.
+    *   **Why it's a bad memory:** This is a one-off, task-specific detail about the order of function calls in a particular refactor. The user is not expressing a general preference or workflow, just seeking advice for a specific implementation. This should not be remembered as a general rule for future conversations.
 
-**Critical (90-100)**:
-- Security vulnerabilities and fixes
-- Breaking changes and their resolutions
-- Core architectural decisions
-- Performance bottlenecks and optimizations
-- Data loss prevention strategies
+</examples_should_not_remember>
 
-**High (70-89)**:
-- Feature implementations and their patterns
-- User preference changes
-- Successful debugging approaches
-- Tool configuration optimizations
-- Code quality improvements
+<examples_should_remember>
+Examples of memories that SHOULD be remembered:
+function-size-preference: Keep functions under 50 lines to maintain readability (Specific and actionable)
+prefer-async-await: Use async/await style rather than promise chaining (Clear preference that affects code)
+typescript-strict-mode: Always enable strictNullChecks and noImplicitAny in TypeScript projects (Specific configuration)
+test-driven-development: Write tests before implementing a new feature (Clear workflow preference)
+prefer-svelte: Prefer Svelte for new UI work over React (Clear technology choice)
+run-npm-install: Run 'npm install' to install dependencies before running terminal commands (Specific workflow step)
+frontend-layout: The frontend of the codebase uses tailwind css (Specific technology choice)
+</examples_should_remember>
 
-**Medium (50-69)**:
-- Routine bug fixes
-- Style preference adjustments
-- Documentation updates
-- Refactoring decisions
-- Learning interactions
+<labeling_instructions>
+The label should be descriptive of the general concept being captured.
+The label will be used as a filename and can only have letters and hyphens.
+</labeling_instructions>
 
-**Low (20-49)**:
-- Minor formatting changes
-- Clarification questions
-- Temporary workarounds
-- Routine maintenance tasks
-- General conversation
+<formatting_instructions>
+Return your response in the following JSON format:
+{
+	"explanation": "Explain here, for every negative example, why the memory below does *not* violate any of the negative criteria. Be specific about which negative criteria it avoids.",
+	"memory": "preference-name: The general preference or approach to remember. DO NOT include specific details from the current conversation. Keep it short, to max 3 sentences. Do not use examples that refer to the conversation."
+}
 
-**Trivial (0-19)**:
-- Greeting and social interactions
-- Repeated information
-- Failed or abandoned approaches
-- Superseded decisions
-
-### 3. Code Relevance Score (Weight: 30%)
-**Purpose**: Prioritize information directly related to code and development
-
-#### Scoring Factors:
-
-**Direct Code Impact (80-100)**:
-- Function/method implementations
-- Class/module designs
-- API definitions and usage
-- Database schema changes
-- Configuration modifications
-
-**Development Process (60-79)**:
-- Testing strategies and results
-- Build and deployment procedures
-- Tool usage and configuration
-- Code review feedback
-- Performance measurements
-
-**Project Context (40-59)**:
-- Requirements discussions
-- Architecture planning
-- Technology selection rationale
-- Team coordination decisions
-- Project timeline considerations
-
-**General Knowledge (20-39)**:
-- Programming concepts explanation
-- Best practices discussion
-- Industry trends and news
-- Learning resources
-- Theoretical discussions
-
-**Non-Code Related (0-19)**:
-- Personal conversations
-- Off-topic discussions
-- Administrative tasks
-- Non-technical support
-
-### 4. Utility Score (Weight: 10%)
-**Purpose**: Consider how often information is referenced or proves useful
-
-#### Usage Tracking:
-- **Reference Count**: How many times memory has been retrieved
-- **Success Rate**: How often retrieved memory led to successful outcomes
-- **User Satisfaction**: Positive feedback when memory was applied
-- **Pattern Matching**: How well memory generalizes to new situations
-
-#### Scoring Formula:
-```
-utility_score = (reference_count * 10) + (success_rate * 40) + (satisfaction_rating * 30) + (generalization_score * 20)
-```
-
-## Composite Rating Calculation
-
-### Final Score Formula:
-```
-final_score = (recency * 0.25) + (importance * 0.35) + (code_relevance * 0.30) + (utility * 0.10)
-```
-
-### Score Interpretation:
-- **90-100**: Critical memories - retain indefinitely
-- **80-89**: High priority - retain for extended periods
-- **70-79**: Important memories - retain for medium term
-- **60-69**: Moderate priority - retain for short-medium term
-- **40-59**: Low priority - retain for short term or until space needed
-- **20-39**: Minimal priority - candidate for early removal
-- **0-19**: Remove unless specifically requested to retain
-
-## Dynamic Adjustments
-
-### Context-Sensitive Weighting
-Adjust weights based on current situation:
-
-**During Debugging Sessions**:
-- Increase importance weight to 45%
-- Increase code relevance weight to 35%
-- Decrease recency weight to 15%
-- Maintain utility weight at 5%
-
-**During Learning/Exploration**:
-- Increase recency weight to 35%
-- Maintain importance weight at 35%
-- Decrease code relevance weight to 20%
-- Increase utility weight to 10%
-
-**During Feature Development**:
-- Maintain balanced weights as default
-- Apply bonus for related feature memories
-- Prioritize architectural decision memories
-
-### User Preference Modifiers
-- **Conservative User**: Increase importance weight for critical items
-- **Experimental User**: Increase recency weight for latest approaches
-- **Learning-Focused User**: Increase utility weight for educational content
-- **Efficiency-Focused User**: Increase code relevance weight
-
-## Memory Lifecycle Management
-
-### Retention Thresholds
-- **Immediate Removal**: Score < 20
-- **Weekly Review**: Score 20-39
-- **Monthly Review**: Score 40-59
-- **Quarterly Review**: Score 60-79
-- **Annual Review**: Score 80-89
-- **Permanent Retention**: Score 90-100
-
-### Re-evaluation Triggers
-- Memory is accessed or referenced
-- Related code is modified
-- User provides feedback on memory relevance
-- Similar patterns emerge in new code
-- Project architecture changes significantly
-
-### Batch Processing
-- Rate all memories weekly
-- Remove low-scoring memories in batches
-- Consolidate similar high-scoring memories
-- Update user preference profiles based on memory patterns
-- Generate summary reports of memory evolution
-
-## Quality Assurance
-
-### Validation Checks
-- Ensure scoring consistency across similar memories
-- Validate that critical information isn't accidentally downgraded
-- Check for bias in importance scoring
-- Monitor for memory loss that impacts user experience
-
-### Calibration Process
-- Compare memory scores with user feedback
-- Adjust weights based on long-term outcomes
-- Validate against objective measures (code quality, bug rates)
-- Incorporate user satisfaction metrics
-
-### Feedback Integration
-- Track when retrieved memories were helpful or unhelpful
-- Adjust future scoring based on actual utility
-- Learn user patterns for better importance assessment
-- Refine code relevance detection based on usage patterns
+If no memory is needed, return exactly: "no_memory_needed"
+</formatting_instructions>
