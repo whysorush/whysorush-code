@@ -40,8 +40,8 @@ An intelligent code editor that provides context-aware AI assistance, similar to
 
 ```bash
 # Clone the repository
-git clone https://github.com/whysorush/cursor.git
-cd cursor
+git clone https://github.com/whysorush/whysorush-code.git
+cd whysorush-code
 
 # Install dependencies
 npm install
@@ -56,7 +56,7 @@ The application will be available at `http://localhost:5173`
 
 ### GitHub Pages (Recommended)
 
-This project is configured for automatic deployment to GitHub Pages. The site will be available at: **https://whysorush.github.io/cursor**
+This project is configured for automatic deployment to GitHub Pages. The site will be available at: **https://whysorush.github.io/whysorush-code**
 
 #### Automatic Deployment
 - Push changes to the `main` branch
